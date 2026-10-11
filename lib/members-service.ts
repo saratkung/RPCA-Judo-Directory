@@ -12,14 +12,34 @@ import type {
 
 export { SheetsUnavailableError };
 
+// The real roster sheet uses a bare "-" to mean "not applicable" in
+// several columns. Treat it as empty so the UI shows a clean "—" via
+// orDash() instead of a literal, duplicated dash — and so it doesn't
+// show up as a bogus filter option.
+function normalizeDashAsEmpty(value: string): string {
+  const trimmed = value.trim();
+  return trimmed === "-" ? "" : trimmed;
+}
+
+// The real roster sheet also writes some nicknames wrapped in
+// parentheses, e.g. "(หรัด)" — strip a single wrapping pair for a
+// cleaner display without changing the underlying data.
+function cleanNickname(value: string): string {
+  const trimmed = normalizeDashAsEmpty(value);
+  if (trimmed.length > 2 && trimmed.startsWith("(") && trimmed.endsWith(")")) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function rowToMember(row: MemberRow): Member {
   return {
     memberId: row.member_id.trim(),
     fullName: row.full_name.trim(),
-    rank: row.rank.trim(),
-    nickname: row.nickname.trim(),
+    rank: normalizeDashAsEmpty(row.rank),
+    nickname: cleanNickname(row.nickname),
     generation: row.generation.trim(),
-    clubPosition: row.club_position.trim(),
+    clubPosition: normalizeDashAsEmpty(row.club_position),
     phone: row.phone.trim(),
     photoUrl: row.photo_url.trim(),
   };
